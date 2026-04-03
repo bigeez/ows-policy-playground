@@ -741,13 +741,13 @@
   <!-- ── RIGHT PANEL: SIMULATOR ── -->
   <div class="panel" id="simPanel">
     <div class="panel-header">
-      <span class="panel-title">Transaction Simulator</span>
-      <span class="panel-badge">test your policy</span>
+      <span class="panel-title">Pre-Sign Check</span>
+      <span class="panel-badge">policy evaluation</span>
     </div>
     <div class="panel-body">
 
       <div class="info-box">
-        Paste a transaction and simulate whether your policy would <strong>ALLOW</strong> or <strong>DENY</strong> it before any key is touched.
+        Run a pre-sign check to evaluate whether your policy will <strong>ALLOW</strong> or <strong>DENY</strong> it before any key is touched.
       </div>
 
       <div class="field-group">
@@ -786,7 +786,7 @@
       </div>
 
       <button class="btn btn-accent btn-full" onclick="runSim()" style="margin-top:4px;">
-        ▶ run simulation
+        ▶ execute pre-sign check
       </button>
 
       <div class="sim-result" id="simResult">
