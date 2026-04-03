@@ -1,0 +1,13 @@
+{
+  "name": "ows-policy-playground",
+  "version": "1.0.0",
+  "description": "Interactive OWS policy builder, validator and pre-sign simulator",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}
