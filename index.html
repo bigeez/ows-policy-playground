@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OWS Policy Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface2: #18181c;
+    --surface3: #1f1f25;
+    --border: #2a2a32;
+    --border2: #353540;
+    --accent: #e8ff47;
+    --accent2: #b8ff00;
+    --red: #ff4d4d;
+    --green: #47ff8a;
+    --blue: #47b8ff;
+    --muted: #555565;
+    --text: #e8e8f0;
+    --text2: #9090a8;
+    --text3: #606075;
+    --mono: 'Geist Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,11,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 0.6rem;
+    font-family: var(--mono);
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.08em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-link {
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .header-link:hover { color: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 380px 1fr 340px;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+  }
+
+  .panel {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+  .panel:last-child { border-right: none; }
+
+  .panel-header {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .panel-title {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--text2);
+    text-transform: uppercase;
+  }
+
+  .panel-badge {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    letter-spacing: 0.06em;
+  }
+
+  .panel-body { padding: 20px; }
+
+  /* ── POLICY META ── */
+  .field-group { margin-bottom: 20px; }
+  .field-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  input[type="text"], input[type="datetime-local"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--text3); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    color: var(--text3);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0 14px;
+  }
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── RULE CARDS ── */
+  .rule-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .rule-card:hover { border-color: var(--border2); }
+  .rule-card.active { border-color: var(--accent); }
+
+  .rule-card-header {
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .rule-toggle {
+    width: 32px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .rule-toggle.on {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .rule-toggle::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text3);
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .rule-toggle.on::after {
+    transform: translateX(14px);
+    background: #000;
+  }
+
+  .rule-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .rule-type-tag {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    padding: 2px 7px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  .rule-body {
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+    display: none;
+  }
+  .rule-body.open { display: block; padding-top: 12px; }
+
+  /* ── CHAIN CHECKBOXES ── */
+  .chain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .chain-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 0.72rem;
+    color: var(--text2);
+    user-select: none;
+  }
+  .chain-chip:hover { border-color: var(--border2); }
+  .chain-chip.selected {
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.06);
+    color: var(--text);
+  }
+
+  .chain-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .chain-chip.selected .chain-dot { background: var(--accent); }
+
+  /* ── ALLOWLIST ── */
+  .addr-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+
+  .addr-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.68rem;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+
+  .addr-remove {
+    margin-left: auto;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .addr-remove:hover { color: var(--red); }
+
+  .addr-add-row {
+    display: flex;
+    gap: 6px;
+  }
+  .addr-add-row input { flex: 1; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-accent {
+    background: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+  .btn-accent:hover { background: var(--accent2); }
+  .btn-ghost {
+    background: var(--surface3);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+  .btn-danger {
+    background: rgba(255,77,77,0.1);
+    color: var(--red);
+    border: 1px solid rgba(255,77,77,0.2);
+  }
+  .btn-danger:hover { background: rgba(255,77,77,0.2); }
+  .btn-sm { padding: 5px 10px; font-size: 0.65rem; }
+  .btn-full { width: 100%; justify-content: center; display: flex; }
+
+  /* ── MIDDLE PANEL: JSON OUTPUT ── */
+  .json-panel {
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .json-toolbar {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 57px;
+    z-index: 5;
+  }
+
+  .json-output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    font-size: 0.76rem;
+    line-height: 1.7;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+
+  .json-key { color: #9da8ff; }
+  .json-string { color: #a8ff9d; }
+  .json-number { color: #ffb347; }
+  .json-bool { color: var(--blue); }
+  .json-null { color: var(--muted); }
+  .json-punct { color: var(--text3); }
+
+  .copy-toast {
+    font-size: 0.65rem;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .copy-toast.show { opacity: 1; }
+
+  /* ── RIGHT PANEL: SIMULATOR ── */
+  .sim-result {
+    margin-top: 16px;
+    border-radius: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .sim-result.show { display: block; }
+  .sim-result.pass {
+    background: rgba(71,255,138,0.06);
+    border-color: rgba(71,255,138,0.3);
+  }
+  .sim-result.fail {
+    background: rgba(255,77,77,0.06);
+    border-color: rgba(255,77,77,0.3);
+  }
+
+  .sim-verdict {
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sim-verdict.pass { color: var(--green); }
+  .sim-verdict.fail { color: var(--red); }
+
+  .sim-checks { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+
+  .sim-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.7rem;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+  .sim-check-icon { flex-shrink: 0; margin-top: 1px; }
+  .sim-check.pass .sim-check-icon { color: var(--green); }
+  .sim-check.fail .sim-check-icon { color: var(--red); }
+  .sim-check.skip { opacity: 0.4; }
+
+  /* ── PRESETS ── */
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .preset-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .preset-btn:hover { border-color: var(--accent); background: rgba(232,255,71,0.04); }
+  .preset-btn-name {
+    font-size: 0.72rem;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .preset-btn-desc {
+    font-size: 0.62rem;
+    color: var(--text3);
+    line-height: 1.4;
+  }
+
+  /* ── SCROLLBARS ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── MISC ── */
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .tag {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+  }
+  .tag-rule { background: rgba(157,168,255,0.1); color: #9da8ff; }
+  .tag-active { background: rgba(232,255,71,0.1); color: var(--accent); }
+  .tag-inactive { background: var(--surface3); color: var(--text3); }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.15s;
+    line-height: 1.5;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  .spin {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fade-in {
+    animation: fadeIn 0.2s ease forwards;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    outline: none;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+
+  .info-box {
+    background: rgba(71,184,255,0.06);
+    border: 1px solid rgba(71,184,255,0.2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.68rem;
+    color: var(--blue);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .spending-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span>OWS</span>
+    <span class="logo-badge">POLICY PLAYGROUND</span>
+  </div>
+  <div class="header-right">
+    <a class="header-link" href="https://github.com/open-wallet-standard/core/blob/main/docs/03-policy-engine.md" target="_blank">↗ SPEC</a>
+    <a class="header-link" href="https://github.com/open-wallet-standard/core" target="_blank">↗ GITHUB</a>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ── LEFT PANEL: BUILDER ── -->
+  <div class="panel" id="builderPanel">
+    <div class="panel-header">
+      <span class="panel-title">Policy Builder</span>
+      <span class="panel-badge" id="activeRuleCount">0 rules active</span>
+    </div>
+    <div class="panel-body">
+
+      <!-- PRESETS -->
+      <div class="section-divider">Quick presets</div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="applyPreset('agent')">
+          <div class="preset-btn-name">🤖 AI Agent</div>
+          <div class="preset-btn-desc">Base only, expire in 30 days</div>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('readonly')">
+          <div class="preset-btn-name">🔒 Read-Only</div>
+          <div class="preset-btn-desc">No signing allowed</div>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('multichain')">
+          <div class="preset-btn-name">🌐 Multi-Chain</div>
+          <div class="preset-btn-desc">EVM + Solana allowlist</div>
+        </button>
+        <button class="preset-btn" onclick="applyPreset('defi')">
+          <div class="preset-btn-name">⚡ DeFi Bot</div>
+          <div class="preset-btn-desc">Allowlist + chain + expiry</div>
+        </button>
+      </div>
+
+      <!-- META -->
+      <div class="section-divider">Policy metadata</div>
+
+      <div class="field-group">
+        <label class="field-label">Policy ID</label>
+        <input type="text" id="policyId" placeholder="my-agent-policy" oninput="render()">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Policy Name</label>
+        <input type="text" id="policyName" placeholder="My Agent Safety Limits" oninput="render()">
+      </div>
+
+      <!-- RULES -->
+      <div class="section-divider">Rules</div>
+
+      <!-- RULE: allowed_chains -->
+      <div class="rule-card" id="card-chains">
+        <div class="rule-card-header" onclick="toggleRule('chains')">
+          <div class="rule-toggle" id="toggle-chains" onclick="event.stopPropagation(); toggleRuleOn('chains')"></div>
+          <span class="rule-name">allowed_chains</span>
+          <span class="rule-type-tag">declarative</span>
+        </div>
+        <div class="rule-body" id="body-chains">
+          <p style="font-size:0.66rem; color:var(--text3); margin-bottom:12px; line-height:1.5;">
+            Restrict which CAIP-2 chain IDs this key can sign for. Any chain not listed will be denied.
+          </p>
+          <div class="chain-grid" id="chainGrid"></div>
+        </div>
+      </div>
+
+      <!-- RULE: expires_at -->
+      <div class="rule-card" id="card-expires">
+        <div class="rule-card-header" onclick="toggleRule('expires')">
+          <div class="rule-toggle" id="toggle-expires" onclick="event.stopPropagation(); toggleRuleOn('expires')"></div>
+          <span class="rule-name">expires_at</span>
+          <span class="rule-type-tag">declarative</span>
+        </div>
+        <div class="rule-body" id="body-expires">
+          <p style="font-size:0.66rem; color:var(--text3); margin-bottom:12px; line-height:1.5;">
+            Time-bound access. Any signing request after this timestamp will be denied automatically.
+          </p>
+          <div class="field-group" style="margin:0;">
+            <label class="field-label">Expiry date & time</label>
+            <input type="datetime-local" id="expiresAt" oninput="render()">
+          </div>
+        </div>
+      </div>
+
+      <!-- RULE: address allowlist -->
+      <div class="rule-card" id="card-allowlist">
+        <div class="rule-card-header" onclick="toggleRule('allowlist')">
+          <div class="rule-toggle" id="toggle-allowlist" onclick="event.stopPropagation(); toggleRuleOn('allowlist')"></div>
+          <span class="rule-name">address_allowlist</span>
+          <span class="rule-type-tag">executable</span>
+        </div>
+        <div class="rule-body" id="body-allowlist">
+          <p style="font-size:0.66rem; color:var(--text3); margin-bottom:12px; line-height:1.5;">
+            Only allow transactions to these recipient addresses. All others will be denied. Runs as a custom executable policy.
+          </p>
+          <div class="addr-list" id="addrList"></div>
+          <div class="addr-add-row">
+            <input type="text" id="addrInput" placeholder="0x742d35Cc..." style="font-size:0.7rem;">
+            <button class="btn btn-ghost btn-sm" onclick="addAddr()">+ add</button>
+          </div>
+          <div style="margin-top:12px;">
+            <label class="field-label">Allowlist type</label>
+            <select id="allowlistType" onchange="render()">
+              <option value="evm">EVM (0x addresses)</option>
+              <option value="solana">Solana (base58)</option>
+              <option value="any">Any chain</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULE: spending limit -->
+      <div class="rule-card" id="card-spending">
+        <div class="rule-card-header" onclick="toggleRule('spending')">
+          <div class="rule-toggle" id="toggle-spending" onclick="event.stopPropagation(); toggleRuleOn('spending')"></div>
+          <span class="rule-name">spending_limit</span>
+          <span class="rule-type-tag">executable</span>
+        </div>
+        <div class="rule-body" id="body-spending">
+          <p style="font-size:0.66rem; color:var(--text3); margin-bottom:12px; line-height:1.5;">
+            Cap daily spending and per-transaction amounts. Tracked via PolicyContext spending metadata.
+          </p>
+          <div class="spending-row">
+            <div class="field-group" style="margin:0;">
+              <label class="field-label">Daily limit (ETH)</label>
+              <input type="text" id="dailyLimit" placeholder="1.0" oninput="render()">
+            </div>
+            <div class="field-group" style="margin:0;">
+              <label class="field-label">Per-tx limit (ETH)</label>
+              <input type="text" id="perTxLimit" placeholder="0.25" oninput="render()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WALLET SCOPE -->
+      <div class="section-divider">API key settings</div>
+
+      <div class="field-group">
+        <label class="field-label">Wallet name / scope</label>
+        <input type="text" id="walletScope" placeholder="agent-treasury" oninput="render()">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Key name</label>
+        <input type="text" id="keyName" placeholder="claude-agent" oninput="render()">
+      </div>
+
+      <div style="margin-top: 8px;">
+        <button class="btn btn-danger btn-sm" onclick="resetAll()">↺ reset all</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── MIDDLE PANEL: JSON OUTPUT ── -->
+  <div class="panel json-panel">
+    <div class="panel-header">
+      <span class="panel-title">Generated Config</span>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="copy-toast" id="copyToast">copied!</span>
+        <button class="btn btn-ghost btn-sm" onclick="copyJSON()">copy JSON</button>
+        <button class="btn btn-accent btn-sm" onclick="copyOWSCommand()">copy ows command</button>
+      </div>
+    </div>
+
+    <div class="json-output" id="jsonOutput">
+      <div style="color:var(--text3); font-size:0.72rem; margin-top: 60px; text-align:center; line-height:2;">
+        Configure a policy on the left<br>to see the output here.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL: SIMULATOR ── -->
+  <div class="panel" id="simPanel">
+    <div class="panel-header">
+      <span class="panel-title">Transaction Simulator</span>
+      <span class="panel-badge">test your policy</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="info-box">
+        Paste a transaction and simulate whether your policy would <strong>ALLOW</strong> or <strong>DENY</strong> it before any key is touched.
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Chain</label>
+        <select id="simChain" onchange="renderSim()">
+          <option value="eip155:8453">Base (eip155:8453)</option>
+          <option value="eip155:1">Ethereum (eip155:1)</option>
+          <option value="eip155:137">Polygon (eip155:137)</option>
+          <option value="eip155:42161">Arbitrum (eip155:42161)</option>
+          <option value="solana:5eykt">Solana (mainnet)</option>
+          <option value="bip122:000">Bitcoin (mainnet)</option>
+          <option value="cosmos:cosmoshub">Cosmos Hub</option>
+          <option value="tron:mainnet">Tron</option>
+          <option value="ton:mainnet">TON</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">To address</label>
+        <input type="text" id="simTo" placeholder="0x742d35Cc..." oninput="renderSim()">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Value (ETH / native token)</label>
+        <input type="text" id="simValue" placeholder="0.1" oninput="renderSim()">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Daily total already spent (ETH)</label>
+        <input type="text" id="simDailySpent" placeholder="0.0" oninput="renderSim()">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Timestamp</label>
+        <input type="datetime-local" id="simTimestamp" oninput="renderSim()">
+      </div>
+
+      <button class="btn btn-accent btn-full" onclick="runSim()" style="margin-top:4px;">
+        ▶ run simulation
+      </button>
+
+      <div class="sim-result" id="simResult">
+        <div class="sim-verdict" id="simVerdict"></div>
+        <div class="sim-checks" id="simChecks"></div>
+      </div>
+
+      <!-- PolicyContext preview -->
+      <div class="section-divider" style="margin-top:24px;">PolicyContext</div>
+      <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px; font-size:0.68rem; line-height:1.8; overflow-x:auto;" id="ctxPreview">
+        <span style="color:var(--text3);">Fill in the fields above to see the PolicyContext.</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+var state = {
+  policyId: '',
+  policyName: '',
+  rules: {
+    chains: { on: false, selected: [] },
+    expires: { on: false, value: '' },
+    allowlist: { on: false, addrs: [], type: 'evm' },
+    spending: { on: false, daily: '', perTx: '' }
+  },
+  wallet: '',
+  keyName: ''
+};
+
+var CHAINS = [
+  { id: 'eip155:1', label: 'Ethereum' },
+  { id: 'eip155:8453', label: 'Base' },
+  { id: 'eip155:137', label: 'Polygon' },
+  { id: 'eip155:42161', label: 'Arbitrum' },
+  { id: 'eip155:10', label: 'Optimism' },
+  { id: 'eip155:56', label: 'BSC' },
+  { id: 'solana:5eykt', label: 'Solana' },
+  { id: 'bip122:000', label: 'Bitcoin' },
+  { id: 'cosmos:cosmoshub', label: 'Cosmos' },
+  { id: 'tron:mainnet', label: 'Tron' },
+  { id: 'ton:mainnet', label: 'TON' },
+  { id: 'eip155:84532', label: 'Base Testnet' }
+];
+
+function init() {
+  // build chain grid
+  var grid = document.getElementById('chainGrid');
+  grid.innerHTML = '';
+  CHAINS.forEach(function(c) {
+    var chip = document.createElement('div');
+    chip.className = 'chain-chip';
+    chip.setAttribute('data-chain', c.id);
+    chip.innerHTML = '<div class="chain-dot"></div><span>' + c.label + '</span>';
+    chip.onclick = function() { toggleChain(c.id); };
+    grid.appendChild(chip);
+  });
+
+  // set default timestamp for sim
+  var now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('simTimestamp').value = now.toISOString().slice(0,16);
+
+  render();
+  renderSim();
+}
+
+function toggleRule(name) {
+  var body = document.getElementById('body-' + name);
+  body.classList.toggle('open');
+}
+
+function toggleRuleOn(name) {
+  state.rules[name].on = !state.rules[name].on;
+  var tog = document.getElementById('toggle-' + name);
+  var card = document.getElementById('card-' + name);
+  if (state.rules[name].on) {
+    tog.classList.add('on');
+    card.classList.add('active');
+    document.getElementById('body-' + name).classList.add('open');
+  } else {
+    tog.classList.remove('on');
+    card.classList.remove('active');
+  }
+  render();
+}
+
+function toggleChain(id) {
+  var arr = state.rules.chains.selected;
+  var idx = arr.indexOf(id);
+  if (idx === -1) arr.push(id);
+  else arr.splice(idx, 1);
+
+  document.querySelectorAll('.chain-chip').forEach(function(chip) {
+    if (chip.getAttribute('data-chain') === id) {
+      chip.classList.toggle('selected', arr.indexOf(id) !== -1);
+    }
+  });
+  render();
+}
+
+function addAddr() {
+  var inp = document.getElementById('addrInput');
+  var val = inp.value.trim();
+  if (!val) return;
+  state.rules.allowlist.addrs.push(val);
+  inp.value = '';
+  renderAddrList();
+  render();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.activeElement.id === 'addrInput') addAddr();
+});
+
+function removeAddr(i) {
+  state.rules.allowlist.addrs.splice(i, 1);
+  renderAddrList();
+  render();
+}
+
+function renderAddrList() {
+  var list = document.getElementById('addrList');
+  list.innerHTML = '';
+  state.rules.allowlist.addrs.forEach(function(addr, i) {
+    var item = document.createElement('div');
+    item.className = 'addr-item fade-in';
+    item.innerHTML = '<span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + addr + '</span>' +
+      '<span class="addr-remove" onclick="removeAddr(' + i + ')">&#x2715;</span>';
+    list.appendChild(item);
+  });
+}
+
+function collectState() {
+  state.policyId = document.getElementById('policyId').value.trim() || 'my-policy';
+  state.policyName = document.getElementById('policyName').value.trim() || 'My Policy';
+  state.rules.expires.value = document.getElementById('expiresAt').value;
+  state.rules.spending.daily = document.getElementById('dailyLimit').value.trim();
+  state.rules.spending.perTx = document.getElementById('perTxLimit').value.trim();
+  state.rules.allowlist.type = document.getElementById('allowlistType').value;
+  state.wallet = document.getElementById('walletScope').value.trim() || 'my-wallet';
+  state.keyName = document.getElementById('keyName').value.trim() || 'my-agent';
+}
+
+function buildPolicyJSON() {
+  collectState();
+  var r = state.rules;
+  var rules = [];
+  var hasExecutable = false;
+  var execPath = null;
+  var config = null;
+
+  if (r.chains.on && r.chains.selected.length > 0) {
+    rules.push({ type: 'allowed_chains', chain_ids: r.chains.selected });
+  }
+  if (r.expires.on && r.expires.value) {
+    var dt = new Date(r.expires.value).toISOString();
+    rules.push({ type: 'expires_at', timestamp: dt });
+  }
+  if (r.allowlist.on && r.allowlist.addrs.length > 0) {
+    hasExecutable = true;
+    execPath = '~/.ows/plugins/policies/address-allowlist';
+    config = { addresses: r.allowlist.addrs, chain_type: r.allowlist.type };
+  }
+  if (r.spending.on) {
+    hasExecutable = true;
+    if (!execPath) execPath = '~/.ows/plugins/policies/spending-limit';
+    config = Object.assign(config || {}, {
+      daily_limit_eth: r.spending.daily || '1.0',
+      per_tx_limit_eth: r.spending.perTx || '0.25'
+    });
+  }
+
+  var policy = {
+    id: state.policyId,
+    name: state.policyName,
+    version: 1,
+    created_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+    rules: rules.length > 0 ? rules : [],
+    executable: hasExecutable ? execPath : null,
+    config: config,
+    action: 'deny'
+  };
+
+  return policy;
+}
+
+function buildOWSCommands() {
+  collectState();
+  var lines = [
+    '# 1. Save policy to disk',
+    'ows policy create --file ' + state.policyId + '.json',
+    '',
+    '# 2. Create an API key scoped to this policy',
+    'ows key create \\',
+    '  --name "' + state.keyName + '" \\',
+    '  --wallet ' + state.wallet + ' \\',
+    '  --policy ' + state.policyId
+  ];
+  return lines.join('\n');
+}
+
+function syntaxHL(json) {
+  return json
+    .replace(/("[\w\-\/@:.]+")(\s*:)/g, '<span class="json-key">$1</span><span class="json-punct">$2</span>')
+    .replace(/: (".*?")/g, ': <span class="json-string">$1</span>')
+    .replace(/: (\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+    .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/: (null)/g, ': <span class="json-null">$1</span>')
+    .replace(/([{}\[\],])/g, '<span class="json-punct">$1</span>');
+}
+
+function render() {
+  var policy = buildPolicyJSON();
+  var json = JSON.stringify(policy, null, 2);
+  var cmd = buildOWSCommands();
+
+  var out = document.getElementById('jsonOutput');
+  out.innerHTML =
+    '<div style="color:var(--text3); font-size:0.6rem; letter-spacing:0.1em; margin-bottom:16px; text-transform:uppercase;">policy.json</div>' +
+    '<pre style="white-space:pre-wrap; word-break:break-all;">' + syntaxHL(json) + '</pre>' +
+    '<div style="color:var(--text3); font-size:0.6rem; letter-spacing:0.1em; margin: 24px 0 12px; text-transform:uppercase;">ows commands</div>' +
+    '<pre style="white-space:pre-wrap; color:var(--text2); font-size:0.72rem; line-height:1.8;">' + cmd + '</pre>';
+
+  // active rule count
+  var count = Object.values(state.rules).filter(function(r) { return r.on; }).length;
+  document.getElementById('activeRuleCount').textContent = count + ' rule' + (count !== 1 ? 's' : '') + ' active';
+
+  renderSim();
+}
+
+function copyJSON() {
+  var policy = buildPolicyJSON();
+  navigator.clipboard.writeText(JSON.stringify(policy, null, 2));
+  showToast();
+}
+
+function copyOWSCommand() {
+  navigator.clipboard.writeText(buildOWSCommands());
+  showToast();
+}
+
+function showToast() {
+  var t = document.getElementById('copyToast');
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+
+function runSim() {
+  collectState();
+  var chain = document.getElementById('simChain').value;
+  var to = document.getElementById('simTo').value.trim();
+  var value = parseFloat(document.getElementById('simValue').value) || 0;
+  var dailySpent = parseFloat(document.getElementById('simDailySpent').value) || 0;
+  var timestamp = document.getElementById('simTimestamp').value;
+
+  var r = state.rules;
+  var checks = [];
+  var denied = false;
+
+  // chains check
+  if (r.chains.on) {
+    if (r.chains.selected.length === 0) {
+      checks.push({ pass: false, msg: 'allowed_chains: no chains selected — deny all' });
+      denied = true;
+    } else if (r.chains.selected.indexOf(chain) === -1) {
+      checks.push({ pass: false, msg: 'allowed_chains: "' + chain + '" not in allowed list' });
+      denied = true;
+    } else {
+      checks.push({ pass: true, msg: 'allowed_chains: "' + chain + '" is allowed ✓' });
+    }
+  }
+
+  // expiry check
+  if (r.expires.on && r.expires.value) {
+    var expiry = new Date(r.expires.value);
+    var now = timestamp ? new Date(timestamp) : new Date();
+    if (now > expiry) {
+      checks.push({ pass: false, msg: 'expires_at: token expired at ' + expiry.toISOString() });
+      denied = true;
+    } else {
+      var diff = Math.round((expiry - now) / 3600000);
+      checks.push({ pass: true, msg: 'expires_at: valid for ' + diff + 'h more ✓' });
+    }
+  }
+
+  // allowlist check
+  if (r.allowlist.on && r.allowlist.addrs.length > 0) {
+    if (!to) {
+      checks.push({ pass: false, msg: 'address_allowlist: no recipient specified' });
+      denied = true;
+    } else {
+      var inList = r.allowlist.addrs.some(function(a) {
+        return a.toLowerCase() === to.toLowerCase();
+      });
+      if (!inList) {
+        checks.push({ pass: false, msg: 'address_allowlist: "' + to.slice(0,10) + '..." not in allowlist' });
+        denied = true;
+      } else {
+        checks.push({ pass: true, msg: 'address_allowlist: recipient is on the allowlist ✓' });
+      }
+    }
+  }
+
+  // spending check
+  if (r.spending.on) {
+    var daily = parseFloat(r.spending.daily) || 1.0;
+    var perTx = parseFloat(r.spending.perTx) || 0.25;
+
+    if (value > perTx) {
+      checks.push({ pass: false, msg: 'spending_limit: tx value ' + value + ' ETH exceeds per-tx cap of ' + perTx + ' ETH' });
+      denied = true;
+    } else {
+      checks.push({ pass: true, msg: 'spending_limit: per-tx ' + value + ' ETH <= cap of ' + perTx + ' ETH ✓' });
+    }
+
+    if (!denied || checks[checks.length-1].pass) {
+      var newTotal = dailySpent + value;
+      if (newTotal > daily) {
+        checks.push({ pass: false, msg: 'spending_limit: daily total ' + newTotal.toFixed(4) + ' ETH would exceed ' + daily + ' ETH cap' });
+        denied = true;
+      } else {
+        checks.push({ pass: true, msg: 'spending_limit: daily total ' + newTotal.toFixed(4) + ' / ' + daily + ' ETH ✓' });
+      }
+    }
+  }
+
+  if (checks.length === 0) {
+    checks.push({ pass: true, msg: 'No active rules — transaction allowed (owner mode)' });
+  }
+
+  var result = document.getElementById('simResult');
+  var verdict = document.getElementById('simVerdict');
+  var checksEl = document.getElementById('simChecks');
+
+  result.className = 'sim-result show fade-in ' + (denied ? 'fail' : 'pass');
+  verdict.className = 'sim-verdict ' + (denied ? 'fail' : 'pass');
+  verdict.innerHTML = denied ? '✗ &nbsp;DENIED' : '✓ &nbsp;ALLOWED';
+
+  checksEl.innerHTML = '';
+  checks.forEach(function(c) {
+    var el = document.createElement('div');
+    el.className = 'sim-check ' + (c.pass ? 'pass' : 'fail');
+    el.innerHTML = '<span class="sim-check-icon">' + (c.pass ? '✓' : '✗') + '</span><span>' + c.msg + '</span>';
+    checksEl.appendChild(el);
+  });
+
+  renderSim();
+}
+
+function renderSim() {
+  collectState();
+  var chain = document.getElementById('simChain').value;
+  var to = document.getElementById('simTo').value.trim();
+  var value = document.getElementById('simValue').value.trim();
+  var dailySpent = document.getElementById('simDailySpent').value.trim();
+  var timestamp = document.getElementById('simTimestamp').value;
+
+  var valueWei = value ? '0x' + Math.round(parseFloat(value) * 1e18).toString(16) : '0x0';
+  var dailyWei = dailySpent ? '0x' + Math.round(parseFloat(dailySpent) * 1e18).toString(16) : '0x0';
+
+  var ctx = {
+    chain_id: chain,
+    wallet_id: state.wallet || 'my-wallet',
+    api_key_id: '<derived-from-token>',
+    transaction: {
+      to: to || null,
+      value: valueWei,
+      raw_hex: '0x02f8...',
+      data: '0x'
+    },
+    spending: {
+      daily_total: dailyWei,
+      date: timestamp ? timestamp.slice(0,10) : new Date().toISOString().slice(0,10)
+    },
+    timestamp: timestamp ? new Date(timestamp).toISOString() : new Date().toISOString()
+  };
+
+  var pre = document.getElementById('ctxPreview');
+  pre.innerHTML = '<pre style="white-space:pre-wrap; word-break:break-all;">' + syntaxHL(JSON.stringify(ctx, null, 2)) + '</pre>';
+}
+
+function resetAll() {
+  state = {
+    policyId: '', policyName: '',
+    rules: {
+      chains: { on: false, selected: [] },
+      expires: { on: false, value: '' },
+      allowlist: { on: false, addrs: [], type: 'evm' },
+      spending: { on: false, daily: '', perTx: '' }
+    },
+    wallet: '', keyName: ''
+  };
+
+  ['policyId','policyName','expiresAt','dailyLimit','perTxLimit','walletScope','keyName','addrInput'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  ['chains','expires','allowlist','spending'].forEach(function(name) {
+    document.getElementById('toggle-' + name).classList.remove('on');
+    document.getElementById('card-' + name).classList.remove('active');
+    document.getElementById('body-' + name).classList.remove('open');
+  });
+
+  document.querySelectorAll('.chain-chip').forEach(function(c) { c.classList.remove('selected'); });
+  document.getElementById('addrList').innerHTML = '';
+  document.getElementById('simResult').className = 'sim-result';
+  document.getElementById('allowlistType').value = 'evm';
+
+  render();
+}
+
+function applyPreset(name) {
+  resetAll();
+
+  if (name === 'agent') {
+    document.getElementById('policyId').value = 'base-agent-policy';
+    document.getElementById('policyName').value = 'Base AI Agent Safety Limits';
+    document.getElementById('walletScope').value = 'agent-treasury';
+    document.getElementById('keyName').value = 'claude-agent';
+
+    state.rules.chains.on = true;
+    state.rules.chains.selected = ['eip155:8453', 'eip155:84532'];
+    document.getElementById('toggle-chains').classList.add('on');
+    document.getElementById('card-chains').classList.add('active');
+    document.getElementById('body-chains').classList.add('open');
+    document.querySelectorAll('.chain-chip').forEach(function(c) {
+      c.classList.toggle('selected', state.rules.chains.selected.indexOf(c.getAttribute('data-chain')) !== -1);
+    });
+
+    state.rules.expires.on = true;
+    var exp = new Date(); exp.setDate(exp.getDate() + 30);
+    exp.setMinutes(exp.getMinutes() - exp.getTimezoneOffset());
+    document.getElementById('expiresAt').value = exp.toISOString().slice(0,16);
+    document.getElementById('toggle-expires').classList.add('on');
+    document.getElementById('card-expires').classList.add('active');
+    document.getElementById('body-expires').classList.add('open');
+
+    state.rules.spending.on = true;
+    document.getElementById('dailyLimit').value = '0.5';
+    document.getElementById('perTxLimit').value = '0.1';
+    document.getElementById('toggle-spending').classList.add('on');
+    document.getElementById('card-spending').classList.add('active');
+    document.getElementById('body-spending').classList.add('open');
+
+  } else if (name === 'readonly') {
+    document.getElementById('policyId').value = 'read-only';
+    document.getElementById('policyName').value = 'Read-Only Access';
+    document.getElementById('walletScope').value = 'my-wallet';
+    document.getElementById('keyName').value = 'readonly-agent';
+
+    // No chains allowed = deny everything
+    state.rules.chains.on = true;
+    state.rules.chains.selected = [];
+    document.getElementById('toggle-chains').classList.add('on');
+    document.getElementById('card-chains').classList.add('active');
+    document.getElementById('body-chains').classList.add('open');
+
+  } else if (name === 'multichain') {
+    document.getElementById('policyId').value = 'multichain-agent';
+    document.getElementById('policyName').value = 'Multi-Chain Agent Policy';
+    document.getElementById('walletScope').value = 'multi-wallet';
+    document.getElementById('keyName').value = 'multichain-bot';
+
+    state.rules.chains.on = true;
+    state.rules.chains.selected = ['eip155:1','eip155:8453','eip155:137','solana:5eykt'];
+    document.getElementById('toggle-chains').classList.add('on');
+    document.getElementById('card-chains').classList.add('active');
+    document.getElementById('body-chains').classList.add('open');
+    document.querySelectorAll('.chain-chip').forEach(function(c) {
+      c.classList.toggle('selected', state.rules.chains.selected.indexOf(c.getAttribute('data-chain')) !== -1);
+    });
+
+  } else if (name === 'defi') {
+    document.getElementById('policyId').value = 'defi-bot-policy';
+    document.getElementById('policyName').value = 'DeFi Bot Limits';
+    document.getElementById('walletScope').value = 'defi-treasury';
+    document.getElementById('keyName').value = 'defi-agent';
+
+    state.rules.chains.on = true;
+    state.rules.chains.selected = ['eip155:8453'];
+    document.getElementById('toggle-chains').classList.add('on');
+    document.getElementById('card-chains').classList.add('active');
+    document.getElementById('body-chains').classList.add('open');
+    document.querySelectorAll('.chain-chip').forEach(function(c) {
+      c.classList.toggle('selected', state.rules.chains.selected.indexOf(c.getAttribute('data-chain')) !== -1);
+    });
+
+    state.rules.allowlist.on = true;
+    state.rules.allowlist.addrs = ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913','0x4200000000000000000000000000000000000006'];
+    document.getElementById('toggle-allowlist').classList.add('on');
+    document.getElementById('card-allowlist').classList.add('active');
+    document.getElementById('body-allowlist').classList.add('open');
+    renderAddrList();
+
+    state.rules.spending.on = true;
+    document.getElementById('dailyLimit').value = '2.0';
+    document.getElementById('perTxLimit').value = '0.5';
+    document.getElementById('toggle-spending').classList.add('on');
+    document.getElementById('card-spending').classList.add('active');
+    document.getElementById('body-spending').classList.add('open');
+
+    state.rules.expires.on = true;
+    var exp2 = new Date(); exp2.setFullYear(exp2.getFullYear() + 1);
+    exp2.setMinutes(exp2.getMinutes() - exp2.getTimezoneOffset());
+    document.getElementById('expiresAt').value = exp2.toISOString().slice(0,16);
+    document.getElementById('toggle-expires').classList.add('on');
+    document.getElementById('card-expires').classList.add('active');
+    document.getElementById('body-expires').classList.add('open');
+  }
+
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
