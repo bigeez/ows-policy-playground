@@ -1,9 +1,6 @@
 {
-  "version": 2,
   "functions": {
-    "api/*.js": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 5
-    }
+    "api/save.js": { "runtime": "nodejs20.x" },
+    "api/load.js": { "runtime": "nodejs20.x" }
   }
 }
