@@ -1,0 +1,3 @@
+api/policies/*.json
+.vercel
+node_modules

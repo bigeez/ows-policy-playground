@@ -725,9 +725,11 @@
     <div class="panel-header">
       <span class="panel-title">Generated Config</span>
       <div style="display:flex; gap:8px; align-items:center;">
+        <span class="copy-toast" id="shareToast">link copied!</span>
         <span class="copy-toast" id="copyToast">copied!</span>
         <button class="btn btn-ghost btn-sm" onclick="copyJSON()">copy JSON</button>
-        <button class="btn btn-accent btn-sm" onclick="copyOWSCommand()">copy ows command</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyOWSCommand()">copy ows command</button>
+        <button class="btn btn-accent btn-sm" id="shareBtn" onclick="sharePolicy()">↗ share</button>
       </div>
     </div>
 
@@ -1304,7 +1306,93 @@ function applyPreset(name) {
   render();
 }
 
+async function sharePolicy() {
+  collectState();
+  var btn = document.getElementById('shareBtn');
+  btn.textContent = '...';
+  btn.disabled = true;
+
+  try {
+    var res = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+    var data = await res.json();
+    if (data.url) {
+      navigator.clipboard.writeText(data.url);
+      var t = document.getElementById('shareToast');
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2500);
+    } else {
+      alert('Share failed: ' + (data.error || 'unknown error'));
+    }
+  } catch (e) {
+    alert('Share failed: ' + e.message);
+  } finally {
+    btn.textContent = '↗ share';
+    btn.disabled = false;
+  }
+}
+
+async function loadFromUrl() {
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id');
+  if (!id) return;
+
+  try {
+    var res = await fetch('/api/load?id=' + encodeURIComponent(id));
+    if (!res.ok) return;
+    var saved = await res.json();
+    restoreState(saved);
+  } catch (e) {
+    console.error('Failed to load shared policy:', e);
+  }
+}
+
+function restoreState(saved) {
+  state = saved;
+
+  document.getElementById('policyId').value = state.policyId || '';
+  document.getElementById('policyName').value = state.policyName || '';
+  document.getElementById('walletScope').value = state.wallet || '';
+  document.getElementById('keyName').value = state.keyName || '';
+
+  var ruleNames = ['chains', 'expires', 'allowlist', 'spending'];
+  ruleNames.forEach(function(name) {
+    var tog = document.getElementById('toggle-' + name);
+    var card = document.getElementById('card-' + name);
+    var body = document.getElementById('body-' + name);
+    if (state.rules[name] && state.rules[name].on) {
+      tog.classList.add('on');
+      card.classList.add('active');
+      body.classList.add('open');
+    } else {
+      tog.classList.remove('on');
+      card.classList.remove('active');
+      body.classList.remove('open');
+    }
+  });
+
+  document.querySelectorAll('.chain-chip').forEach(function(c) {
+    var selected = state.rules.chains.selected || [];
+    c.classList.toggle('selected', selected.indexOf(c.getAttribute('data-chain')) !== -1);
+  });
+
+  if (state.rules.expires.value) {
+    document.getElementById('expiresAt').value = state.rules.expires.value;
+  }
+
+  renderAddrList();
+  document.getElementById('allowlistType').value = state.rules.allowlist.type || 'evm';
+  document.getElementById('dailyLimit').value = state.rules.spending.daily || '';
+  document.getElementById('perTxLimit').value = state.rules.spending.perTx || '';
+
+  render();
+}
+
 init();
+loadFromUrl();
 </script>
 </body>
 </html>
