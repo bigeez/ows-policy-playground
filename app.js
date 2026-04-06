@@ -500,79 +500,50 @@ function resetAll() {
 // PRE-SIGN SIMULATOR
 // ─────────────────────────────────────────────────────────────────────────────
 
-function runSim() {
+async function runSim() {
   collectState();
-  const chain      = $('simChain').value;
-  const to         = $('simTo').value.trim();
-  const value      = parseFloat($('simValue').value)      || 0;
-  const dailySpent = parseFloat($('simDailySpent').value) || 0;
-  const timestamp  = $('simTimestamp').value;
 
-  const r      = state.rules;
-  const checks = [];
-  let   denied = false;
+  const btn = $('runSimBtn');
+  btn.disabled    = true;
+  btn.textContent = '…';
 
-  const deny = msg => { checks.push({ pass: false, msg }); denied = true; };
-  const pass = msg =>   checks.push({ pass: true,  msg });
+  const transaction = {
+    chain:      $('simChain').value,
+    to:         $('simTo').value.trim() || null,
+    value:      parseFloat($('simValue').value)      || 0,
+    dailySpent: parseFloat($('simDailySpent').value) || 0,
+    timestamp:  $('simTimestamp').value || undefined,
+  };
 
-  // ── allowed_chains ─────────────────────────────────────────────────────────
-  if (r.chains.on) {
-    if (r.chains.selected.length === 0)
-      deny('allowed_chains: no chains configured — deny all');
-    else if (!r.chains.selected.includes(chain))
-      deny(`allowed_chains: "${chain}" not in allowed list`);
-    else
-      pass(`allowed_chains: "${chain}" is allowed ✓`);
+  try {
+    const res  = await fetch('/api/simulate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ policy: { rules: state.rules }, transaction }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    renderSimResult(data);
+  } catch (err) {
+    console.error('[runSim]', err);
+    renderSimResult({
+      allowed: false,
+      checks:  [{ rule: 'error', pass: false, message: err.message }],
+    });
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '▶ run simulation';
   }
+}
 
-  // ── expires_at ─────────────────────────────────────────────────────────────
-  if (r.expires.on && r.expires.value) {
-    const expiry = new Date(r.expires.value);
-    const now    = timestamp ? new Date(timestamp) : new Date();
-    if (now > expiry)
-      deny(`expires_at: policy expired at ${expiry.toISOString()}`);
-    else
-      pass(`expires_at: valid for ${Math.round((expiry - now) / 3_600_000)}h more ✓`);
-  }
-
-  // ── address_allowlist ──────────────────────────────────────────────────────
-  if (r.allowlist.on && r.allowlist.addrs.length > 0) {
-    if (!to)
-      deny('address_allowlist: no recipient address specified');
-    else if (!r.allowlist.addrs.some(a => a.toLowerCase() === to.toLowerCase()))
-      deny(`address_allowlist: "${to.slice(0, 12)}…" not in allowlist`);
-    else
-      pass('address_allowlist: recipient is allowlisted ✓');
-  }
-
-  // ── spending_limit ─────────────────────────────────────────────────────────
-  if (r.spending.on) {
-    const cap   = parseFloat(r.spending.daily) || 1.0;
-    const perTx = parseFloat(r.spending.perTx) || 0.25;
-
-    if (value > perTx) {
-      deny(`spending_limit: ${value} ETH exceeds per-tx cap of ${perTx} ETH`);
-    } else {
-      pass(`spending_limit: ${value} ETH ≤ per-tx cap of ${perTx} ETH ✓`);
-      const newTotal = dailySpent + value;
-      if (newTotal > cap)
-        deny(`spending_limit: daily total ${newTotal.toFixed(4)} ETH would exceed ${cap} ETH cap`);
-      else
-        pass(`spending_limit: daily total ${newTotal.toFixed(4)} / ${cap} ETH ✓`);
-    }
-  }
-
-  if (checks.length === 0)
-    pass('No active rules — transaction allowed (owner mode)');
-
-  // ── Render results ──────────────────────────────────────────────────────────
+function renderSimResult({ allowed, checks }) {
   const result   = $('simResult');
   const verdict  = $('simVerdict');
   const checksEl = $('simChecks');
 
-  result.className  = `sim-result show fade-in ${denied ? 'fail' : 'pass'}`;
-  verdict.className = `sim-verdict ${denied ? 'fail' : 'pass'}`;
-  verdict.innerHTML = denied ? '✗ &nbsp;DENIED' : '✓ &nbsp;ALLOWED';
+  result.className  = `sim-result show fade-in ${allowed ? 'pass' : 'fail'}`;
+  verdict.className = `sim-verdict ${allowed ? 'pass' : 'fail'}`;
+  verdict.innerHTML = allowed ? '✓ &nbsp;ALLOWED' : '✗ &nbsp;DENIED';
 
   checksEl.innerHTML = '';
   checks.forEach(c => {
@@ -580,11 +551,9 @@ function runSim() {
     el.className = `sim-check ${c.pass ? 'pass' : 'fail'}`;
     el.innerHTML =
       `<span class="sim-check-icon">${c.pass ? '✓' : '✗'}</span>` +
-      `<span>${esc(c.msg)}</span>`;
+      `<span>${esc(c.rule ? `${c.rule}: ` : '')}${esc(c.message)}</span>`;
     checksEl.appendChild(el);
   });
-
-  renderSim();
 }
 
 function renderSim() {
